@@ -84,7 +84,7 @@ class CentralSystem(cp):
         logger.info(f"Vendor: {charge_point_vendor}, Model: {charge_point_model}")
         logger.info(f"Additional info: {kwargs}")
         
-        return call_result.BootNotification(
+        return call_result.BootNotificationPayload(
             current_time=datetime.now(timezone.utc).isoformat(),
             interval=30,
             status=enums.RegistrationStatus.accepted
@@ -93,7 +93,7 @@ class CentralSystem(cp):
     @on("Heartbeat")
     async def on_heartbeat(self, **kwargs):
         logger.info(f"Heartbeat received from {self.id}")
-        return call_result.Heartbeat(
+        return call_result.HeartbeatPayload(
             current_time=datetime.now(timezone.utc).isoformat()
         )
     
@@ -102,7 +102,7 @@ class CentralSystem(cp):
         logger.info(f"StatusNotification from {self.id}: Connector {connector_id} = {status} (Error: {error_code})")
         if kwargs:
             logger.info(f"Additional status info: {kwargs}")
-        return call_result.StatusNotification()
+        return call_result.StatusNotificationPayload()
     
     @on("MeterValues")
     async def on_meter_values(self, connector_id, meter_value, **kwargs):
@@ -115,7 +115,7 @@ class CentralSystem(cp):
                 value = sample.get('value', 'N/A')
                 unit = sample.get('unit', '')
                 logger.info(f"    {measurand}: {value} {unit}")
-        return call_result.MeterValues()
+        return call_result.MeterValuesPayload()
     
     @on("StartTransaction")
     async def on_start_transaction(self, connector_id, id_tag, meter_start, timestamp, **kwargs):
@@ -129,7 +129,7 @@ class CentralSystem(cp):
         logger.info(f"StartTransaction from {self.id}: Connector {connector_id}, ID: {id_tag}, Transaction: {transaction_id}")
         logger.info(f"  Meter start: {meter_start}, Time: {timestamp}")
         
-        return call_result.StartTransaction(
+        return call_result.StartTransactionPayload(
             transaction_id=transaction_id,
             id_tag_info=datatypes.IdTagInfo(status=enums.AuthorizationStatus.accepted)
         )
@@ -146,7 +146,7 @@ class CentralSystem(cp):
         else:
             logger.warning(f"StopTransaction for unknown transaction {transaction_id}")
         
-        return call_result.StopTransaction(
+        return call_result.StopTransactionPayload(
             id_tag_info=datatypes.IdTagInfo(status=enums.AuthorizationStatus.accepted)
         )
     
@@ -154,7 +154,7 @@ class CentralSystem(cp):
     async def on_authorize(self, id_tag, **kwargs):
         logger.info(f"Authorize from {self.id}: ID tag {id_tag}")
         # Simple authorization - accept all tags
-        return call_result.Authorize(
+        return call_result.AuthorizePayload(
             id_tag_info=datatypes.IdTagInfo(status=enums.AuthorizationStatus.accepted)
         )
     
@@ -164,17 +164,17 @@ class CentralSystem(cp):
         data = kwargs.get('data', 'N/A')
         logger.info(f"DataTransfer from {self.id}: Vendor {vendor_id}, Message: {message_id}")
         logger.info(f"  Data: {data}")
-        return call_result.DataTransfer(status=enums.DataTransferStatus.accepted)
+        return call_result.DataTransferPayload(status=enums.DataTransferStatus.accepted)
     
     @on("DiagnosticsStatusNotification")
     async def on_diagnostics_status_notification(self, status, **kwargs):
         logger.info(f"DiagnosticsStatusNotification from {self.id}: {status}")
-        return call_result.DiagnosticsStatusNotification()
+        return call_result.DiagnosticsStatusNotificationPayload()
     
     @on("FirmwareStatusNotification")
     async def on_firmware_status_notification(self, status, **kwargs):
         logger.info(f"FirmwareStatusNotification from {self.id}: {status}")
-        return call_result.FirmwareStatusNotification()
+        return call_result.FirmwareStatusNotificationPayload()
     
     # ============ UTILITY METHODS ============
     
