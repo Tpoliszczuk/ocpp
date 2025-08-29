@@ -1,9 +1,9 @@
 import asyncio
 import websockets
+from datetime import datetime
 from ocpp.routing import on
 from ocpp.v16 import ChargePoint as cp
 from ocpp.v16 import call_result, call
-from datetime import datetime
 import os
 
 class CentralSystem(cp):
@@ -29,7 +29,7 @@ class CentralSystem(cp):
         asyncio.create_task(self.send_url_configuration())
         
         return call_result.BootNotification(
-            current_time=datetime.utcnow().isoformat() + "Z",
+            current_time=datetime.now().isoformat() + "Z",
             interval=30,
             status="Accepted"
         )
@@ -49,7 +49,7 @@ class CentralSystem(cp):
     async def on_heartbeat(self, **kwargs):
         print(f"Heartbeat received from {self.id}")
         return call_result.Heartbeat(
-            current_time=datetime.utcnow().isoformat() + "Z"
+            current_time=datetime.now().isoformat() + "Z"
         )
 
 async def on_connect(websocket):
