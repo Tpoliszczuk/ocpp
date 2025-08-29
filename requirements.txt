@@ -3,3 +3,4 @@ asyncio-mqtt>=0.13.0
 ocpp>=0.20.0
 flask>=2.3.0
 gunicorn>=21.0.0
+eventlet>=0.33.0
