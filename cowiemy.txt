@@ -1,0 +1,13 @@
+Mamy ładowarkę do samochodów elektrycznych.
+Ma protokół OCPP 1.6j
+Jestem podłączony do jednej sieci z nią.
+
+ping 192.168.3.228 - działa -- to adres IP urządzenia podpisanego jako OCPP (chyba konwerter rs485 na ethernet)
+
+Zgodnie z informacją od producenta, mogę zdalnie zmienić adres URL do której jest podłączona.
+First, you need to connect to the platform, and then make the necessary changes within it.
+{ "key" : "Url", "readonly" : false, "value" : "ws://47.101.173.122:8887" }
+
+Chce móc zbierać dane, co się dzieje w ładowarkach, np. ile jest ładowanych samochodów, ile jest dostępnych, ile jest wolnych itp.
+
+Krok pierwszy -  testy - czyli chcemy program który będzie mógł wyświetlić mi w terminalu co sie dzieje z ładowarką
