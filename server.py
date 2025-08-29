@@ -26,7 +26,7 @@ class CentralSystem(cp):
     
     async def send_remote_start(self, id_tag="RFID123", connector_id=1):
         """Send RemoteStartTransaction"""
-        request = call.RemoteStartTransactionPayload(
+        request = call.RemoteStartTransaction(
             id_tag=id_tag,
             connector_id=connector_id
         )
@@ -36,42 +36,42 @@ class CentralSystem(cp):
     
     async def send_remote_stop(self, transaction_id):
         """Send RemoteStopTransaction"""
-        request = call.RemoteStopTransactionPayload(transaction_id=transaction_id)
+        request = call.RemoteStopTransaction(transaction_id=transaction_id)
         response = await self.call(request)
         logger.info(f"RemoteStopTransaction response: {response}")
         return response
     
     async def send_change_configuration(self, key, value):
         """Send ChangeConfiguration"""
-        request = call.ChangeConfigurationPayload(key=key, value=value)
+        request = call.ChangeConfiguration(key=key, value=value)
         response = await self.call(request)
         logger.info(f"ChangeConfiguration response: {response}")
         return response
     
     async def send_get_configuration(self, key=None):
         """Send GetConfiguration"""
-        request = call.GetConfigurationPayload(key=[key] if key else None)
+        request = call.GetConfiguration(key=[key] if key else None)
         response = await self.call(request)
         logger.info(f"GetConfiguration response: {response}")
         return response
     
     async def send_reset(self, type="Soft"):
         """Send Reset"""
-        request = call.ResetPayload(type=type)
+        request = call.Reset(type=type)
         response = await self.call(request)
         logger.info(f"Reset response: {response}")
         return response
     
     async def send_unlock_connector(self, connector_id):
         """Send UnlockConnector"""
-        request = call.UnlockConnectorPayload(connector_id=connector_id)
+        request = call.UnlockConnector(connector_id=connector_id)
         response = await self.call(request)
         logger.info(f"UnlockConnector response: {response}")
         return response
     
     async def send_change_availability(self, connector_id, type):
         """Send ChangeAvailability"""
-        request = call.ChangeAvailabilityPayload(connector_id=connector_id, type=type)
+        request = call.ChangeAvailability(connector_id=connector_id, type=type)
         response = await self.call(request)
         logger.info(f"ChangeAvailability response: {response}")
         return response
@@ -84,7 +84,7 @@ class CentralSystem(cp):
         logger.info(f"Vendor: {charge_point_vendor}, Model: {charge_point_model}")
         logger.info(f"Additional info: {kwargs}")
         
-        return call_result.BootNotificationPayload(
+        return call_result.BootNotification(
             current_time=datetime.now().isoformat() + "Z",
             interval=30,
             status="Accepted"
@@ -93,7 +93,7 @@ class CentralSystem(cp):
     @on("Heartbeat")
     async def on_heartbeat(self, **kwargs):
         logger.info(f"Heartbeat received from {self.id}")
-        return call_result.HeartbeatPayload(
+        return call_result.Heartbeat(
             current_time=datetime.now().isoformat() + "Z"
         )
     
@@ -102,7 +102,7 @@ class CentralSystem(cp):
         logger.info(f"StatusNotification from {self.id}: Connector {connector_id} = {status} (Error: {error_code})")
         if kwargs:
             logger.info(f"Additional status info: {kwargs}")
-        return call_result.StatusNotificationPayload()
+        return call_result.StatusNotification()
     
     @on("MeterValues")
     async def on_meter_values(self, connector_id, meter_value, **kwargs):
@@ -115,7 +115,7 @@ class CentralSystem(cp):
                 value = sample.get('value', 'N/A')
                 unit = sample.get('unit', '')
                 logger.info(f"    {measurand}: {value} {unit}")
-        return call_result.MeterValuesPayload()
+        return call_result.MeterValues()
     
     @on("StartTransaction")
     async def on_start_transaction(self, connector_id, id_tag, meter_start, timestamp, **kwargs):
@@ -129,7 +129,7 @@ class CentralSystem(cp):
         logger.info(f"StartTransaction from {self.id}: Connector {connector_id}, ID: {id_tag}, Transaction: {transaction_id}")
         logger.info(f"  Meter start: {meter_start}, Time: {timestamp}")
         
-        return call_result.StartTransactionPayload(
+        return call_result.StartTransaction(
             transaction_id=transaction_id,
             id_tag_info={"status": "Accepted"}
         )
@@ -146,13 +146,13 @@ class CentralSystem(cp):
         else:
             logger.warning(f"StopTransaction for unknown transaction {transaction_id}")
         
-        return call_result.StopTransactionPayload()
+        return call_result.StopTransaction()
     
     @on("Authorize")
     async def on_authorize(self, id_tag, **kwargs):
         logger.info(f"Authorize from {self.id}: ID tag {id_tag}")
         # Simple authorization - accept all tags
-        return call_result.AuthorizePayload(
+        return call_result.Authorize(
             id_tag_info={"status": "Accepted"}
         )
     
@@ -162,17 +162,17 @@ class CentralSystem(cp):
         data = kwargs.get('data', 'N/A')
         logger.info(f"DataTransfer from {self.id}: Vendor {vendor_id}, Message: {message_id}")
         logger.info(f"  Data: {data}")
-        return call_result.DataTransferPayload(status="Accepted")
+        return call_result.DataTransfer(status="Accepted")
     
     @on("DiagnosticsStatusNotification")
     async def on_diagnostics_status_notification(self, status, **kwargs):
         logger.info(f"DiagnosticsStatusNotification from {self.id}: {status}")
-        return call_result.DiagnosticsStatusNotificationPayload()
+        return call_result.DiagnosticsStatusNotification()
     
     @on("FirmwareStatusNotification")
     async def on_firmware_status_notification(self, status, **kwargs):
         logger.info(f"FirmwareStatusNotification from {self.id}: {status}")
-        return call_result.FirmwareStatusNotificationPayload()
+        return call_result.FirmwareStatusNotification()
     
     # ============ UTILITY METHODS ============
     

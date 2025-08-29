@@ -43,7 +43,7 @@ class CentralSystem(cp):
     async def send_url_configuration(self):
         """Wysyła konfigurację URL po krótkim opóźnieniu"""
         await asyncio.sleep(2)  # Czekaj 2 sekundy po BootNotification
-        await self.send_change_configuration("Url", "ws://47.101.173.122:8887")
+        await self.send_change_configuration("url", "wss://ocpp-cwehcmh6gyg9gycr.northeurope-01.azurewebsites.net")
     
     @on("StatusNotification")
     async def on_status_notification(self, connector_id, error_code, status, **kwargs):

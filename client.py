@@ -56,8 +56,9 @@ class ChargePoint(cp):
 
 async def main():
     # Azure deployment - WebSocket na tym samym porcie co HTTP
-    azure_url = "wss://ocpp-cwehcmh6gyg9gycr.northeurope-01.azurewebsites.net"
-    # azure_url = "ws://localhost:9000"  # Dla testów lokalnych
+    #azure_url = "wss://ocpp-cwehcmh6gyg9gycr.northeurope-01.azurewebsites.net"
+    
+    azure_url = "wss://20.107.224.54"  # Dla testów lokalnych
     
     async with websockets.connect(f"{azure_url}/CP_1") as ws1:
         cp1 = ChargePoint("CP_1", ws1)
