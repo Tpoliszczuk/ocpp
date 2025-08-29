@@ -55,11 +55,13 @@ class ChargePoint(cp):
             await asyncio.sleep(15)  # co 15 sekund
 
 async def main():
-    # Dwa oddzielne połączenia WebSocket
-    async with websockets.connect("ws://10.0.12.35:9100/CP_1") as ws1:
+    # Połączenie z serwerem na Azure (WSS dla HTTPS)
+    azure_url = "wss://ocpp-cwehcmh6gyg9gycr.northeurope-01.azurewebsites.net"
+    
+    async with websockets.connect(f"{azure_url}/CP_1") as ws1:
         cp1 = ChargePoint("CP_1", ws1)
         
-        async with websockets.connect("ws://10.0.12.35:9100/CP_2") as ws2:
+        async with websockets.connect(f"{azure_url}/CP_2") as ws2:
             cp2 = ChargePoint("CP_2", ws2)
             
             await asyncio.gather(
@@ -72,4 +74,6 @@ if __name__ == "__main__":
         try:
             asyncio.run(main())
         except Exception as e:
-            asyncio.sleep(5)
+            print(f"Error: {e}")
+            import time
+            time.sleep(5)

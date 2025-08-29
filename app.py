@@ -1,7 +1,7 @@
-import asyncio
-import threading
 from flask import Flask
-import websockets
+from flask_sock import Sock
+import asyncio
+import json
 from ocpp.routing import on
 from ocpp.v16 import ChargePoint as cp
 from ocpp.v16 import call_result, call
@@ -9,6 +9,7 @@ from datetime import datetime
 import os
 
 app = Flask(__name__)
+sock = Sock(app)
 
 class CentralSystem(cp):
     async def send_remote_start(self, id_tag="RFID123"):
@@ -57,53 +58,51 @@ class CentralSystem(cp):
             current_time=datetime.utcnow().isoformat() + "Z"
         )
 
-async def on_connect(websocket):
+# WebSocket adapter dla Flask-Sock
+class WebSocketAdapter:
+    def __init__(self, ws):
+        self.ws = ws
+        self.path = ws.path
+    
+    async def send(self, message):
+        self.ws.send(message)
+    
+    async def recv(self):
+        return self.ws.receive()
+    
+    async def close(self):
+        pass
+
+@sock.route('/<charge_point_id>')
+def websocket_handler(ws, charge_point_id):
+    print(f"New WebSocket connection from charge point: {charge_point_id}")
+    
+    # Adapter dla OCPP
+    ws_adapter = WebSocketAdapter(ws)
+    
+    # Uruchom OCPP w synchronicznym kontekście
     try:
-        # For websockets 15.x, we need to use the request object
-        path = websocket.request.path if hasattr(websocket, 'request') else websocket.path
-        charge_point_id = path.strip("/")
-        print(f"New connection from charge point: {charge_point_id}")
-        cp = CentralSystem(charge_point_id, websocket)
-        await cp.start()
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        
+        cp = CentralSystem(charge_point_id, ws_adapter)
+        loop.run_until_complete(cp.start())
     except Exception as e:
-        print(f"Error handling connection: {e}")
+        print(f"Error in WebSocket handler: {e}")
         import traceback
         traceback.print_exc()
-        await websocket.close()
-
-async def start_websocket_server():
-    """Uruchamia serwer WebSocket w tle"""
-    port = int(os.environ.get('PORT', 8000))
-    server = await websockets.serve(
-        on_connect, 
-        "0.0.0.0", 
-        port,
-        process_request=None
-    )
-    print(f"OCPP WebSocket server listening on ws://0.0.0.0:{port}")
-    await server.wait_closed()
-
-def run_websocket_server():
-    """Uruchamia serwer WebSocket w osobnym wątku"""
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-    loop.run_until_complete(start_websocket_server())
 
 @app.route('/')
 def index():
     return {
         "status": "OCPP Central System Running",
-        "websocket_endpoint": f"ws://{os.environ.get('WEBSITE_HOSTNAME', 'localhost')}",
+        "websocket_endpoint": f"wss://{os.environ.get('WEBSITE_HOSTNAME', 'localhost')}",
         "protocol": "OCPP 1.6j"
     }
 
 @app.route('/health')
 def health():
     return {"status": "healthy"}
-
-# Uruchom serwer WebSocket w tle przy starcie aplikacji
-websocket_thread = threading.Thread(target=run_websocket_server, daemon=True)
-websocket_thread.start()
 
 if __name__ == "__main__":
     port = int(os.environ.get('PORT', 8000))
