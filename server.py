@@ -1,11 +1,11 @@
+from datetime import datetime, timezone
 import asyncio
 import websockets
 import logging
-from datetime import datetime
+import os
 from ocpp.routing import on
 from ocpp.v16 import ChargePoint as cp
-from ocpp.v16 import call_result, call
-import os
+from ocpp.v16 import call_result, call, datatypes, enums
 
 # Configure logging
 logging.basicConfig(
@@ -85,16 +85,16 @@ class CentralSystem(cp):
         logger.info(f"Additional info: {kwargs}")
         
         return call_result.BootNotification(
-            current_time=datetime.now().isoformat() + "Z",
+            current_time=datetime.now(timezone.utc).isoformat(),
             interval=30,
-            status="Accepted"
+            status=enums.RegistrationStatus.accepted
         )
     
     @on("Heartbeat")
     async def on_heartbeat(self, **kwargs):
         logger.info(f"Heartbeat received from {self.id}")
         return call_result.Heartbeat(
-            current_time=datetime.now().isoformat() + "Z"
+            current_time=datetime.now(timezone.utc).isoformat()
         )
     
     @on("StatusNotification")
@@ -131,7 +131,7 @@ class CentralSystem(cp):
         
         return call_result.StartTransaction(
             transaction_id=transaction_id,
-            id_tag_info={"status": "Accepted"}
+            id_tag_info=datatypes.IdTagInfo(status=enums.AuthorizationStatus.accepted)
         )
     
     @on("StopTransaction")
@@ -146,14 +146,16 @@ class CentralSystem(cp):
         else:
             logger.warning(f"StopTransaction for unknown transaction {transaction_id}")
         
-        return call_result.StopTransaction()
+        return call_result.StopTransaction(
+            id_tag_info=datatypes.IdTagInfo(status=enums.AuthorizationStatus.accepted)
+        )
     
     @on("Authorize")
     async def on_authorize(self, id_tag, **kwargs):
         logger.info(f"Authorize from {self.id}: ID tag {id_tag}")
         # Simple authorization - accept all tags
         return call_result.Authorize(
-            id_tag_info={"status": "Accepted"}
+            id_tag_info=datatypes.IdTagInfo(status=enums.AuthorizationStatus.accepted)
         )
     
     @on("DataTransfer")
@@ -162,7 +164,7 @@ class CentralSystem(cp):
         data = kwargs.get('data', 'N/A')
         logger.info(f"DataTransfer from {self.id}: Vendor {vendor_id}, Message: {message_id}")
         logger.info(f"  Data: {data}")
-        return call_result.DataTransfer(status="Accepted")
+        return call_result.DataTransfer(status=enums.DataTransferStatus.accepted)
     
     @on("DiagnosticsStatusNotification")
     async def on_diagnostics_status_notification(self, status, **kwargs):
