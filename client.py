@@ -61,13 +61,10 @@ async def main():
     
     async with websockets.connect(f"{azure_url}/CP_1") as ws1:
         cp1 = ChargePoint("CP_1", ws1)
-        
-        async with websockets.connect(f"{azure_url}/CP_2") as ws2:
-            cp2 = ChargePoint("CP_2", ws2)
+    
             
-            await asyncio.gather(
-                cp1.start(), cp1.run(),
-                cp2.start(), cp2.run()
+        await asyncio.gather(
+                cp1.start(), cp1.run()
             )
 
 if __name__ == "__main__":

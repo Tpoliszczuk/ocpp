@@ -17,14 +17,14 @@ logger = logging.getLogger(__name__)
 class CentralSystem(cp):
     async def send_remote_start(self, id_tag="RFID123"):
         """Wysyła polecenie rozpoczęcia ładowania do klienta"""
-        request = call.RemoteStartTransaction(id_tag=id_tag)
+        request = call.RemoteStartTransactionPayload(id_tag=id_tag)
         response = await self.call(request)
         logger.info(f"RemoteStartTransaction response: {response}")
         return response
     
     async def send_change_configuration(self, key, value):
         """Wysyła polecenie zmiany konfiguracji do klienta"""
-        request = call.ChangeConfiguration(key=key, value=value)
+        request = call.ChangeConfigurationPayload(key=key, value=value)
         response = await self.call(request)
         logger.info(f"ChangeConfiguration response: {response}")
         return response
@@ -36,7 +36,7 @@ class CentralSystem(cp):
         # Po BootNotification, wyślij zmianę konfiguracji URL
         asyncio.create_task(self.send_url_configuration())
         
-        return call_result.BootNotification(
+        return call_result.BootNotificationPayload(
             current_time=datetime.now().isoformat() + "Z",
             interval=30,
             status="Accepted"
@@ -51,12 +51,12 @@ class CentralSystem(cp):
     async def on_status_notification(self, connector_id, error_code, status, **kwargs):
         logger.info(f"StatusNotification received from {self.id}")
         logger.info(f"Connector {connector_id}: {status} (Error: {error_code})")
-        return call_result.StatusNotification()
+        return call_result.StatusNotificationPayload()
     
     @on("Heartbeat")
     async def on_heartbeat(self, **kwargs):
         logger.info(f"Heartbeat received from {self.id}")
-        return call_result.Heartbeat(
+        return call_result.HeartbeatPayload(
             current_time=datetime.now().isoformat() + "Z"
         )
 
