@@ -8,6 +8,7 @@ from ocpp.v16 import call_result, call
 from datetime import datetime
 import os
 
+
 app = Flask(__name__)
 
 class CentralSystem(cp):
