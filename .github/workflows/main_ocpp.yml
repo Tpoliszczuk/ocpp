@@ -35,7 +35,7 @@ jobs:
         with:
           context: .
           push: true
-          tags: ghcr.io/${{ github.repository }}/ocpp-server:latest
+          tags: ghcr.io/tpoliszczuk/ocpp/ocpp-server:latest
           platforms: linux/amd64
 
   deploy:
@@ -50,5 +50,5 @@ jobs:
           app-name: 'OCPP'
           slot-name: 'Production'
           publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_C87278D258B94EBFBD3D35BC1B65AEC2 }}
-          images: 'ghcr.io/${{ github.repository }}/ocpp-server:latest'
+          images: 'ghcr.io/tpoliszczuk/ocpp/ocpp-server:latest'
          
