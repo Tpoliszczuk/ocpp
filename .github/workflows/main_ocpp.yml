@@ -59,4 +59,4 @@ jobs:
           app-name: 'OCPP'
           slot-name: 'Production'
           publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_C87278D258B94EBFBD3D35BC1B65AEC2 }}
-          startup-command: 'pip install -r requirements.txt --ignore-installed && gunicorn -k eventlet -w 1 --bind=0.0.0.0 --timeout 600 app:app'
+         
