@@ -15,26 +15,74 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 class CentralSystem(cp):
-    async def send_remote_start(self, id_tag="RFID123"):
-        """Wysyła polecenie rozpoczęcia ładowania do klienta"""
-        request = call.RemoteStartTransactionPayload(id_tag=id_tag)
+    """Comprehensive OCPP 1.6j Central System with all message handlers"""
+    
+    def __init__(self, id, connection):
+        super().__init__(id, connection)
+        self.transactions = {}  # Track active transactions
+        self.reservations = {}  # Track reservations
+    
+    # ============ OUTGOING MESSAGES TO CHARGE POINT ============
+    
+    async def send_remote_start(self, id_tag="RFID123", connector_id=1):
+        """Send RemoteStartTransaction"""
+        request = call.RemoteStartTransactionPayload(
+            id_tag=id_tag,
+            connector_id=connector_id
+        )
         response = await self.call(request)
         logger.info(f"RemoteStartTransaction response: {response}")
         return response
     
+    async def send_remote_stop(self, transaction_id):
+        """Send RemoteStopTransaction"""
+        request = call.RemoteStopTransactionPayload(transaction_id=transaction_id)
+        response = await self.call(request)
+        logger.info(f"RemoteStopTransaction response: {response}")
+        return response
+    
     async def send_change_configuration(self, key, value):
-        """Wysyła polecenie zmiany konfiguracji do klienta"""
+        """Send ChangeConfiguration"""
         request = call.ChangeConfigurationPayload(key=key, value=value)
         response = await self.call(request)
         logger.info(f"ChangeConfiguration response: {response}")
         return response
+    
+    async def send_get_configuration(self, key=None):
+        """Send GetConfiguration"""
+        request = call.GetConfigurationPayload(key=[key] if key else None)
+        response = await self.call(request)
+        logger.info(f"GetConfiguration response: {response}")
+        return response
+    
+    async def send_reset(self, type="Soft"):
+        """Send Reset"""
+        request = call.ResetPayload(type=type)
+        response = await self.call(request)
+        logger.info(f"Reset response: {response}")
+        return response
+    
+    async def send_unlock_connector(self, connector_id):
+        """Send UnlockConnector"""
+        request = call.UnlockConnectorPayload(connector_id=connector_id)
+        response = await self.call(request)
+        logger.info(f"UnlockConnector response: {response}")
+        return response
+    
+    async def send_change_availability(self, connector_id, type):
+        """Send ChangeAvailability"""
+        request = call.ChangeAvailabilityPayload(connector_id=connector_id, type=type)
+        response = await self.call(request)
+        logger.info(f"ChangeAvailability response: {response}")
+        return response
+    
+    # ============ INCOMING MESSAGES FROM CHARGE POINT ============
+    
     @on("BootNotification")
     async def on_boot_notification(self, charge_point_vendor, charge_point_model, **kwargs):
         logger.info(f"BootNotification received from {self.id}")
         logger.info(f"Vendor: {charge_point_vendor}, Model: {charge_point_model}")
-        
-        # Po BootNotification, wyślij zmianę konfiguracji URL
-        asyncio.create_task(self.send_url_configuration())
+        logger.info(f"Additional info: {kwargs}")
         
         return call_result.BootNotificationPayload(
             current_time=datetime.now().isoformat() + "Z",
@@ -42,23 +90,104 @@ class CentralSystem(cp):
             status="Accepted"
         )
     
-    async def send_url_configuration(self):
-        """Wysyła konfigurację URL po krótkim opóźnieniu"""
-        await asyncio.sleep(2)  # Czekaj 2 sekundy po BootNotification
-        await self.send_change_configuration("Url", "ws://47.101.173.122:8887")
-    
-    @on("StatusNotification")
-    async def on_status_notification(self, connector_id, error_code, status, **kwargs):
-        logger.info(f"StatusNotification received from {self.id}")
-        logger.info(f"Connector {connector_id}: {status} (Error: {error_code})")
-        return call_result.StatusNotificationPayload()
-    
     @on("Heartbeat")
     async def on_heartbeat(self, **kwargs):
         logger.info(f"Heartbeat received from {self.id}")
         return call_result.HeartbeatPayload(
             current_time=datetime.now().isoformat() + "Z"
         )
+    
+    @on("StatusNotification")
+    async def on_status_notification(self, connector_id, error_code, status, **kwargs):
+        logger.info(f"StatusNotification from {self.id}: Connector {connector_id} = {status} (Error: {error_code})")
+        if kwargs:
+            logger.info(f"Additional status info: {kwargs}")
+        return call_result.StatusNotificationPayload()
+    
+    @on("MeterValues")
+    async def on_meter_values(self, connector_id, meter_value, **kwargs):
+        logger.info(f"MeterValues from {self.id}: Connector {connector_id}")
+        for mv in meter_value:
+            timestamp = mv.get('timestamp', 'N/A')
+            logger.info(f"  Timestamp: {timestamp}")
+            for sample in mv.get('sampled_value', []):
+                measurand = sample.get('measurand', 'Unknown')
+                value = sample.get('value', 'N/A')
+                unit = sample.get('unit', '')
+                logger.info(f"    {measurand}: {value} {unit}")
+        return call_result.MeterValuesPayload()
+    
+    @on("StartTransaction")
+    async def on_start_transaction(self, connector_id, id_tag, meter_start, timestamp, **kwargs):
+        transaction_id = len(self.transactions) + 1
+        self.transactions[transaction_id] = {
+            'connector_id': connector_id,
+            'id_tag': id_tag,
+            'meter_start': meter_start,
+            'timestamp': timestamp
+        }
+        logger.info(f"StartTransaction from {self.id}: Connector {connector_id}, ID: {id_tag}, Transaction: {transaction_id}")
+        logger.info(f"  Meter start: {meter_start}, Time: {timestamp}")
+        
+        return call_result.StartTransactionPayload(
+            transaction_id=transaction_id,
+            id_tag_info={"status": "Accepted"}
+        )
+    
+    @on("StopTransaction")
+    async def on_stop_transaction(self, meter_stop, timestamp, transaction_id, **kwargs):
+        if transaction_id in self.transactions:
+            transaction = self.transactions[transaction_id]
+            energy_consumed = meter_stop - transaction['meter_start']
+            logger.info(f"StopTransaction from {self.id}: Transaction {transaction_id}")
+            logger.info(f"  Meter stop: {meter_stop}, Energy consumed: {energy_consumed}")
+            logger.info(f"  Reason: {kwargs.get('reason', 'Unknown')}")
+            del self.transactions[transaction_id]
+        else:
+            logger.warning(f"StopTransaction for unknown transaction {transaction_id}")
+        
+        return call_result.StopTransactionPayload()
+    
+    @on("Authorize")
+    async def on_authorize(self, id_tag, **kwargs):
+        logger.info(f"Authorize from {self.id}: ID tag {id_tag}")
+        # Simple authorization - accept all tags
+        return call_result.AuthorizePayload(
+            id_tag_info={"status": "Accepted"}
+        )
+    
+    @on("DataTransfer")
+    async def on_data_transfer(self, vendor_id, **kwargs):
+        message_id = kwargs.get('message_id', 'N/A')
+        data = kwargs.get('data', 'N/A')
+        logger.info(f"DataTransfer from {self.id}: Vendor {vendor_id}, Message: {message_id}")
+        logger.info(f"  Data: {data}")
+        return call_result.DataTransferPayload(status="Accepted")
+    
+    @on("DiagnosticsStatusNotification")
+    async def on_diagnostics_status_notification(self, status, **kwargs):
+        logger.info(f"DiagnosticsStatusNotification from {self.id}: {status}")
+        return call_result.DiagnosticsStatusNotificationPayload()
+    
+    @on("FirmwareStatusNotification")
+    async def on_firmware_status_notification(self, status, **kwargs):
+        logger.info(f"FirmwareStatusNotification from {self.id}: {status}")
+        return call_result.FirmwareStatusNotificationPayload()
+    
+    # ============ UTILITY METHODS ============
+    
+    async def get_active_transactions(self):
+        """Get list of active transactions"""
+        return self.transactions
+    
+    async def get_charge_point_status(self):
+        """Get comprehensive charge point status"""
+        return {
+            'id': self.id,
+            'active_transactions': len(self.transactions),
+            'transactions': self.transactions,
+            'reservations': self.reservations
+        }
 
 async def on_connect(websocket):
     try:
