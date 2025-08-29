@@ -4,4 +4,3 @@ ocpp>=0.20.0
 flask>=2.3.0
 gunicorn>=21.0.0
 eventlet>=0.33.0
-flask-sock>=0.7.0
