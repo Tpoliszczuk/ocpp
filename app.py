@@ -71,6 +71,7 @@ async def on_connect(websocket, path):
 
 async def start_websocket_server():
     """Uruchamia serwer WebSocket"""
+    # Na Azure App Service używamy tego samego portu co Flask
     port = int(os.environ.get('PORT', 8000))
     server = await websockets.serve(
         on_connect, 

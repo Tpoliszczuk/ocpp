@@ -55,8 +55,9 @@ class ChargePoint(cp):
             await asyncio.sleep(15)  # co 15 sekund
 
 async def main():
-    # Połączenie z serwerem na Azure (WSS dla HTTPS)
+    # Azure deployment - WebSocket na tym samym porcie co HTTP
     azure_url = "wss://ocpp-cwehcmh6gyg9gycr.northeurope-01.azurewebsites.net"
+    # azure_url = "ws://localhost:9000"  # Dla testów lokalnych
     
     async with websockets.connect(f"{azure_url}/CP_1") as ws1:
         cp1 = ChargePoint("CP_1", ws1)

@@ -4,6 +4,7 @@ from ocpp.routing import on
 from ocpp.v16 import ChargePoint as cp
 from ocpp.v16 import call_result, call
 from datetime import datetime
+import os
 
 class CentralSystem(cp):
     async def send_remote_start(self, id_tag="RFID123"):
@@ -66,14 +67,15 @@ async def on_connect(websocket):
         await websocket.close()
 
 async def main():
-    # For websockets 15.x, use process_request parameter
+    # For Azure deployment, bind to 0.0.0.0 and use PORT env var
+    port = int(os.environ.get('PORT', 8000))
     server = await websockets.serve(
         on_connect, 
-        "10.0.12.35", 
-        9100,
+        "0.0.0.0", 
+        port,
         process_request=None
     )
-    print("Central system listening on ws://10.0.12.35:9100")
+    print(f"Central system listening on ws://0.0.0.0:{port}")
     await server.wait_closed()
 
 if __name__ == "__main__":
